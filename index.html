@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>@googletears | Terminal</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                background-color: #060606;
+                font-family: "Segoe UI", Arial, sans-serif;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                overflow: hidden;
+                position: relative;
+                cursor: none; /* Полностью убираем дефолтную стрелку */
+            }
+
+            /* Задний фон с матрицей */
+            #matrix-canvas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 1;
+            }
+
+            /* Кастомный бледный курсор-точка */
+            #custom-cursor {
+                width: 8px;
+                height: 8px;
+                background: rgba(253, 251, 247, 0.6);
+                border-radius: 50%;
+                position: fixed;
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+                z-index: 9999;
+                box-shadow: 0 0 10px rgba(253, 251, 247, 0.4);
+                transition:
+                    width 0.2s,
+                    height 0.2s,
+                    background-color 0.2s;
+            }
+
+            /* Мягкое расширение точки при наведении на кнопки */
+            body.hovering #custom-cursor {
+                width: 20px;
+                height: 20px;
+                background: rgba(0, 255, 102, 0.2);
+                border: 1px solid rgba(0, 255, 102, 0.6);
+                box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
+            }
+
+            /* Центральный блок */
+            .card {
+                position: relative;
+                z-index: 2;
+                text-align: center;
+                padding: 50px 65px;
+                background: rgba(10, 10, 10, 0.85);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.02);
+                border-radius: 16px;
+                box-shadow: 0 40px 90px rgba(0, 0, 0, 0.9);
+            }
+
+            /* Линейный волновой перелив текста слева направо */
+            .main-title {
+                font-size: 36px;
+                font-weight: 600;
+                margin-bottom: 12px;
+                letter-spacing: 1px;
+                display: inline-block;
+            }
+
+            /* Каждая буква как отдельный шаг для плавного градиентного блика */
+            .main-title span {
+                color: #333333; /* Базовый глубокий серый */
+                display: inline-block;
+                white-space: pre;
+                animation: textShimmer 3s infinite linear;
+            }
+
+            /* Рассчитываем точные тайминги задержки для идеального проката волны */
+            .main-title span:nth-child(1) {
+                animation-delay: 0s;
+            }
+            .main-title span:nth-child(2) {
+                animation-delay: 0.08s;
+            }
+            .main-title span:nth-child(3) {
+                animation-delay: 0.16s;
+            }
+            .main-title span:nth-child(4) {
+                animation-delay: 0.24s;
+            }
+            .main-title span:nth-child(5) {
+                animation-delay: 0.32s;
+            }
+            .main-title span:nth-child(6) {
+                animation-delay: 0.4s;
+            }
+            .main-title span:nth-child(7) {
+                animation-delay: 0.48s;
+            }
+            .main-title span:nth-child(8) {
+                animation-delay: 0.56s;
+            }
+            .main-title span:nth-child(9) {
+                animation-delay: 0.64s;
+            }
+            .main-title span:nth-child(10) {
+                animation-delay: 0.72s;
+            }
+            .main-title span:nth-child(11) {
+                animation-delay: 0.8s;
+            }
+            .main-title span:nth-child(12) {
+                animation-delay: 0.88s;
+            }
+            .main-title span:nth-child(13) {
+                animation-delay: 0.96s;
+            }
+            .main-title span:nth-child(14) {
+                animation-delay: 1.04s;
+            }
+            .main-title span:nth-child(15) {
+                animation-delay: 1.12s;
+            }
+            .main-title span:nth-child(16) {
+                animation-delay: 1.2s;
+            }
+            .main-title span:nth-child(17) {
+                animation-delay: 1.28s;
+            }
+            .main-title span:nth-child(18) {
+                animation-delay: 1.36s;
+            }
+            .main-title span:nth-child(19) {
+                animation-delay: 1.44s;
+            }
+            .main-title span:nth-child(20) {
+                animation-delay: 1.52s;
+            }
+            .main-title span:nth-child(21) {
+                animation-delay: 1.6s;
+            }
+            .main-title span:nth-child(22) {
+                animation-delay: 1.68s;
+            }
+            .main-title span:nth-child(23) {
+                animation-delay: 1.76s;
+            }
+            .main-title span:nth-child(24) {
+                animation-delay: 1.84s;
+            }
+
+            /* Красивая интерполяция блика без изменения геометрии букв */
+            @keyframes textShimmer {
+                0% {
+                    color: #333333;
+                    text-shadow: none;
+                }
+                15% {
+                    color: #fdfbf7; /* Тёплый белый пик */
+                    text-shadow:
+                        0 0 15px rgba(253, 251, 247, 0.65),
+                        0 0 30px rgba(253, 251, 247, 0.2);
+                }
+                30%,
+                100% {
+                    color: #333333;
+                    text-shadow: none;
+                }
+            }
+
+            /* Технологии */
+            .subtitle {
+                font-size: 17px;
+                font-weight: 400;
+                color: #555555;
+                letter-spacing: 2px;
+                margin-bottom: 35px;
+            }
+
+            /* Кнопки соцсетей */
+            .links-container {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+            }
+
+            .btn {
+                display: inline-block;
+                text-decoration: none;
+                padding: 12px 30px;
+                font-size: 15px;
+                font-weight: 500;
+                color: #777777;
+                background: rgba(255, 255, 255, 0.005);
+                border: 1px solid rgba(255, 255, 255, 0.04);
+                border-radius: 8px;
+                transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1);
+                cursor: none;
+            }
+
+            .btn:hover {
+                color: #060606;
+                background: #fdfbf7;
+                border-color: #fdfbf7;
+                transform: translateY(-4px);
+                box-shadow: 0 12px 25px rgba(253, 251, 247, 0.15);
+            }
+
+            .btn:active {
+                transform: translateY(-1px);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="custom-cursor"></div>
+        <canvas id="matrix-canvas"></canvas>
+
+        <div class="card">
+            <h1 class="main-title">
+                <span>@</span><span>g</span><span>o</span><span>o</span
+                ><span>g</span><span>l</span><span>e</span><span>t</span
+                ><span>e</span><span>a</span><span>r</span><span>s</span
+                ><span> </span><span>p</span><span>r</span><span>o</span
+                ><span>g</span><span>r</span><span>a</span><span>m</span
+                ><span>m</span><span>i</span><span>s</span><span>t</span>
+            </h1>
+
+            <p class="subtitle">python, lua, cpp, javascript</p>
+
+            <div class="links-container">
+                <a href="https://t.me/googletears" target="_blank" class="btn"
+                    >Telegram</a
+                >
+                <a
+                    href="https://www.youtube.com/@lagcomp1629"
+                    target="_blank"
+                    class="btn"
+                    >YouTube</a
+                >
+                <a
+                    href="https://vk.com/lagcompensation1629"
+                    target="_blank"
+                    class="btn"
+                    >Vkontakte</a
+                >
+            </div>
+        </div>
+
+        <script>
+            // 1. Плавный кастомный курсор
+            const cursor = document.getElementById("custom-cursor");
+            let mouse = { x: -1000, y: -1000, realX: -1000, realY: -1000 };
+            let speedX = 0,
+                speedY = 0;
+
+            document.addEventListener("mousemove", (e) => {
+                mouse.realX = e.clientX;
+                mouse.realY = e.clientY;
+
+                // Считаем скорость для изменения вектора параллакса
+                speedX = e.movementX || 0;
+                speedY = e.movementY || 0;
+            });
+
+            // Плавный доводчик (Lerp) для курсора, чтобы он не дергался топорно
+            function updateCursor() {
+                const dx = mouse.realX - mouse.x;
+                const dy = mouse.realY - mouse.y;
+
+                mouse.x += dx * 0.25;
+                mouse.y += dy * 0.25;
+
+                cursor.style.left = mouse.x + "px";
+                cursor.style.top = mouse.y + "px";
+
+                requestAnimationFrame(updateCursor);
+            }
+            updateCursor();
+
+            const buttons = document.querySelectorAll(".btn");
+            buttons.forEach((btn) => {
+                btn.addEventListener("mouseenter", () =>
+                    document.body.classList.add("hovering"),
+                );
+                btn.addEventListener("mouseleave", () =>
+                    document.body.classList.remove("hovering"),
+                );
+            });
+
+            // 2. Движок Матрицы с формулой мягкого радиального спада (Fade-decay)
+            const canvas = document.getElementById("matrix-canvas");
+            const ctx = canvas.getContext("2d");
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resizeCanvas();
+            window.addEventListener("resize", resizeCanvas);
+
+            const chars =
+                "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ#$@*+-/<>[]".split("");
+            const fontSize = 14;
+
+            class MatrixStream {
+                constructor(x) {
+                    this.x = x;
+                    this.y = Math.random() * -canvas.height;
+                    this.speed = Math.random() * 2 + 1.5;
+                    this.streamLength = Math.floor(Math.random() * 18) + 10;
+                }
+
+                update() {
+                    this.y += this.speed;
+                    if (this.y - this.streamLength * fontSize > canvas.height) {
+                        this.y = -fontSize * this.streamLength;
+                        this.speed = Math.random() * 2 + 1.5;
+                    }
+                }
+
+                draw() {
+                    for (let i = 0; i < this.streamLength; i++) {
+                        let symbolY = this.y - i * fontSize;
+                        if (symbolY < 0 || symbolY > canvas.height) continue;
+
+                        const char =
+                            chars[Math.floor(Math.random() * chars.length)];
+
+                        // Базовый расчет координат символа
+                        let renderX = this.x;
+                        let renderY = symbolY;
+
+                        // Вычисляем расстояние до курсора
+                        const dx = renderX - mouse.x;
+                        const dy = renderY - mouse.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const maxRadius = 180; // Зона влияния (~5-6 см)
+
+                        // Альфа-затухание хвоста в обычном состоянии
+                        const tailAlpha = 1 - i / this.streamLength;
+
+                        if (distance < maxRadius) {
+                            // ФОРМУЛА МЯГКОГО СПАДА (Коэффициент близости от 0.0 до 1.0)
+                            const proximity = 1 - distance / maxRadius;
+
+                            // Плавное смешивание цветов: от базового серого к сочному зеленому
+                            // Интерполируем RGB: Базовый серый (24, 24, 24) -> Зеленый (0, 255, 102)
+                            const r = Math.floor(24 + (0 - 24) * proximity);
+                            const g = Math.floor(24 + (255 - 24) * proximity);
+                            const b = Math.floor(24 + (102 - 24) * proximity);
+                            const a = tailAlpha + (1 - tailAlpha) * proximity;
+
+                            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a * 0.9})`;
+
+                            // Мягкий интерактивный параллакс с учетом скорости мыши
+                            renderX +=
+                                (dx / distance) * proximity * 8 +
+                                speedX * 0.1 * proximity;
+                            renderY +=
+                                (dy / distance) * proximity * 8 +
+                                speedY * 0.1 * proximity;
+
+                            ctx.font = `bold ${fontSize}px monospace`;
+                        } else {
+                            // Обычный матовый фон вне фокуса мыши
+                            ctx.fillStyle = `rgba(24, 24, 24, ${tailAlpha * 0.6})`;
+                            ctx.font = `${fontSize}px monospace`;
+                        }
+
+                        ctx.fillText(char, renderX, renderY);
+                    }
+                }
+            }
+
+            const streams = [];
+            const columns = Math.floor(canvas.width / fontSize);
+            for (let i = 0; i < columns; i++) {
+                streams.push(new MatrixStream(i * fontSize));
+            }
+
+            function render() {
+                // Кристальная очистка кадра без накопления артефактов
+                ctx.fillStyle = "#060606";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                streams.forEach((stream) => {
+                    stream.update();
+                    stream.draw();
+                });
+
+                // Стабилизируем инерцию скорости мыши, чтобы параллакс затухал плавно
+                speedX *= 0.95;
+                speedY *= 0.95;
+
+                requestAnimationFrame(render);
+            }
+
+            requestAnimationFrame(render);
+        </script>
+    </body>
+</html>
